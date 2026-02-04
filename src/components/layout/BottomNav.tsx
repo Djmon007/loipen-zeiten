@@ -1,4 +1,4 @@
-import { Clock, MapPin, Fuel, Receipt, BarChart3 } from 'lucide-react';
+import { Clock, MapPin, Fuel, Receipt, LayoutDashboard } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,7 +12,7 @@ const workerNavItems = [
 
 const adminNavItems = [
   ...workerNavItems,
-  { to: '/auswertung', icon: BarChart3, label: 'Bericht' },
+  { to: '/admin', icon: LayoutDashboard, label: 'Admin' },
 ];
 
 export function BottomNav() {
