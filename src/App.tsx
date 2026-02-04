@@ -5,14 +5,21 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 
-// Pages
+// Worker Pages
 import Auth from "./pages/Auth";
 import Zeiterfassung from "./pages/Zeiterfassung";
 import Loipen from "./pages/Loipen";
 import Diesel from "./pages/Diesel";
 import Spesen from "./pages/Spesen";
-import Auswertung from "./pages/Auswertung";
 import NotFound from "./pages/NotFound";
+
+// Admin Pages
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminZeiterfassung from "./pages/admin/AdminZeiterfassung";
+import AdminLoipen from "./pages/admin/AdminLoipen";
+import AdminDiesel from "./pages/admin/AdminDiesel";
+import AdminSpesen from "./pages/admin/AdminSpesen";
+import AdminMitarbeiter from "./pages/admin/AdminMitarbeiter";
 
 const queryClient = new QueryClient();
 
@@ -93,7 +100,7 @@ function AppRoutes() {
         }
       />
 
-      {/* Protected routes */}
+      {/* Worker app routes */}
       <Route
         path="/zeiterfassung"
         element={
@@ -127,12 +134,52 @@ function AppRoutes() {
         }
       />
 
-      {/* Admin only */}
+      {/* Admin Panel routes */}
       <Route
-        path="/auswertung"
+        path="/admin"
         element={
           <AdminRoute>
-            <Auswertung />
+            <AdminDashboard />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/zeiterfassung"
+        element={
+          <AdminRoute>
+            <AdminZeiterfassung />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/loipen"
+        element={
+          <AdminRoute>
+            <AdminLoipen />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/diesel"
+        element={
+          <AdminRoute>
+            <AdminDiesel />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/spesen"
+        element={
+          <AdminRoute>
+            <AdminSpesen />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/mitarbeiter"
+        element={
+          <AdminRoute>
+            <AdminMitarbeiter />
           </AdminRoute>
         }
       />
