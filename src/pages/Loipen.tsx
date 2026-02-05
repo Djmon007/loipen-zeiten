@@ -56,6 +56,12 @@ const LOIPEN: LoipeConfig[] = [
     skatingKey: 'saeatli_boden_skating',
     klassischKey: 'saeatli_boden_klassisch',
   },
+  {
+    key: 'skilift_lo',
+    name: 'Skilift Lo',
+    skatingKey: 'skilift_lo_skating',
+    klassischKey: 'skilift_lo_klassisch',
+  },
 ];
 
 type LoipenState = Record<string, boolean>;

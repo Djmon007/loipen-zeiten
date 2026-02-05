@@ -46,6 +46,7 @@ export type Database = {
           beleg_filename: string | null
           beleg_url: string | null
           beschreibung: string | null
+          betrag: number | null
           created_at: string
           datum: string
           id: string
@@ -56,6 +57,7 @@ export type Database = {
           beleg_filename?: string | null
           beleg_url?: string | null
           beschreibung?: string | null
+          betrag?: number | null
           created_at?: string
           datum?: string
           id?: string
@@ -66,6 +68,7 @@ export type Database = {
           beleg_filename?: string | null
           beleg_url?: string | null
           beschreibung?: string | null
+          betrag?: number | null
           created_at?: string
           datum?: string
           id?: string
@@ -99,6 +102,8 @@ export type Database = {
           saeatli_boden_skating: boolean | null
           schwanden_nidfurn_klassisch: boolean | null
           schwanden_nidfurn_skating: boolean | null
+          skilift_lo_klassisch: boolean | null
+          skilift_lo_skating: boolean | null
           time_entry_id: string | null
           user_id: string
         }
@@ -118,6 +123,8 @@ export type Database = {
           saeatli_boden_skating?: boolean | null
           schwanden_nidfurn_klassisch?: boolean | null
           schwanden_nidfurn_skating?: boolean | null
+          skilift_lo_klassisch?: boolean | null
+          skilift_lo_skating?: boolean | null
           time_entry_id?: string | null
           user_id: string
         }
@@ -137,6 +144,8 @@ export type Database = {
           saeatli_boden_skating?: boolean | null
           schwanden_nidfurn_klassisch?: boolean | null
           schwanden_nidfurn_skating?: boolean | null
+          skilift_lo_klassisch?: boolean | null
+          skilift_lo_skating?: boolean | null
           time_entry_id?: string | null
           user_id?: string
         }

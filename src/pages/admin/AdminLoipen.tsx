@@ -36,6 +36,8 @@ interface LoipenProtokoll {
   haetzingen_linthal_klassisch: boolean;
   saeatli_boden_skating: boolean;
   saeatli_boden_klassisch: boolean;
+  skilift_lo_skating: boolean;
+  skilift_lo_klassisch: boolean;
   profiles?: Profile;
 }
 
@@ -46,6 +48,7 @@ const LOIPEN_NAMES = [
   { key: 'luchsingen_skistuebli', name: 'Luchsingen - Skistübli' },
   { key: 'haetzingen_linthal', name: 'Hätzingen - Linthal' },
   { key: 'saeatli_boden', name: 'Säätliboden' },
+  { key: 'skilift_lo', name: 'Skilift Lo' },
 ];
 
 export default function AdminLoipen() {
