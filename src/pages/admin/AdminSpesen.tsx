@@ -23,6 +23,7 @@ interface Expense {
   id: string;
   user_id: string;
   datum: string;
+  betrag: number | null;
   beschreibung: string | null;
   beleg_url: string | null;
   beleg_filename: string | null;
@@ -93,12 +94,13 @@ export default function AdminSpesen() {
       return;
     }
 
-    const headers = ['Datum', 'Mitarbeiter', 'Beschreibung', 'Dateiname', 'Link'];
+    const headers = ['Datum', 'Mitarbeiter', 'Betrag', 'Beschreibung', 'Dateiname', 'Link'];
     const rows = entries.map((entry) => {
       const name = entry.profiles ? `${entry.profiles.vorname} ${entry.profiles.nachname}` : 'Unbekannt';
       return [
         format(new Date(entry.datum), 'dd.MM.yyyy'),
         name,
+        entry.betrag !== null ? entry.betrag.toFixed(2) : '',
         entry.beschreibung || '',
         entry.beleg_filename || '',
         entry.beleg_url || '',
@@ -163,9 +165,13 @@ export default function AdminSpesen() {
 
         {/* Actions */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <Receipt className="h-4 w-4 text-primary" />
             <span className="font-medium">{entries.length} Belege</span>
+            <span className="text-muted-foreground">|</span>
+            <span className="font-semibold text-primary">
+              CHF {entries.reduce((sum, e) => sum + (e.betrag || 0), 0).toFixed(2)}
+            </span>
           </div>
           <Button onClick={exportCSV} variant="outline" className="gap-2">
             <Download className="h-4 w-4" />
@@ -182,6 +188,7 @@ export default function AdminSpesen() {
                   <TableRow>
                     <TableHead>Datum</TableHead>
                     <TableHead>Mitarbeiter</TableHead>
+                    <TableHead className="text-right">Betrag</TableHead>
                     <TableHead>Beschreibung</TableHead>
                     <TableHead>Beleg</TableHead>
                   </TableRow>
@@ -189,11 +196,11 @@ export default function AdminSpesen() {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Laden...</TableCell>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Laden...</TableCell>
                     </TableRow>
                   ) : entries.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Keine Einträge gefunden</TableCell>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Keine Einträge gefunden</TableCell>
                     </TableRow>
                   ) : (
                     entries.map((entry) => (
@@ -201,6 +208,9 @@ export default function AdminSpesen() {
                         <TableCell>{format(new Date(entry.datum), 'dd.MM.yyyy', { locale: de })}</TableCell>
                         <TableCell>
                           {entry.profiles ? `${entry.profiles.vorname} ${entry.profiles.nachname}` : 'Unbekannt'}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {entry.betrag !== null ? `CHF ${entry.betrag.toFixed(2)}` : '–'}
                         </TableCell>
                         <TableCell>{entry.beschreibung || '–'}</TableCell>
                         <TableCell>

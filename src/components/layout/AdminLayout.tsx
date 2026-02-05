@@ -11,11 +11,11 @@ import {
   MapPin,
   Fuel,
   Receipt,
-  Download,
   LogOut,
   Menu,
   Users,
   ChevronRight,
+  ArrowLeft,
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -74,6 +74,14 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
 
       {/* User & Logout */}
       <div className="p-4 border-t border-border">
+        <Link
+          to="/zeiterfassung"
+          onClick={onNavigate}
+          className="flex items-center gap-2 px-3 py-2 mb-3 rounded-lg text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Zur Arbeiter-App
+        </Link>
         {profile && (
           <div className="mb-3">
             <p className="text-sm font-medium">{profile.vorname} {profile.nachname}</p>

@@ -15,6 +15,7 @@ import { de } from 'date-fns/locale';
 interface Expense {
   id: string;
   datum: string;
+  betrag: number | null;
   beschreibung: string | null;
   beleg_url: string | null;
   beleg_filename: string | null;
@@ -32,6 +33,7 @@ export default function Spesen() {
   // Form state
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [beschreibung, setBeschreibung] = useState('');
+  const [betrag, setBetrag] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const fetchExpenses = useCallback(async () => {
@@ -110,6 +112,7 @@ export default function Spesen() {
       const { error: dbError } = await supabase.from('expenses').insert({
         user_id: user.id,
         datum: selectedDate,
+        betrag: betrag ? parseFloat(betrag) : null,
         beschreibung: beschreibung || null,
         beleg_url: urlData.publicUrl,
         beleg_filename: selectedFile.name,
@@ -122,6 +125,7 @@ export default function Spesen() {
       // Reset form
       setSelectedFile(null);
       setBeschreibung('');
+      setBetrag('');
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (cameraInputRef.current) cameraInputRef.current.value = '';
 
@@ -160,6 +164,19 @@ export default function Spesen() {
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
+                className="input-alpine"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Betrag (CHF)</Label>
+              <Input
+                type="number"
+                step="0.05"
+                min="0"
+                placeholder="0.00"
+                value={betrag}
+                onChange={(e) => setBetrag(e.target.value)}
                 className="input-alpine"
               />
             </div>
@@ -273,9 +290,12 @@ export default function Spesen() {
                       <p className="font-medium text-sm truncate">
                         {expense.beschreibung || expense.beleg_filename || 'Beleg'}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(expense.datum), 'dd.MM.yyyy', { locale: de })}
-                      </p>
+                      <div className="flex gap-2 text-xs text-muted-foreground">
+                        <span>{format(new Date(expense.datum), 'dd.MM.yyyy', { locale: de })}</span>
+                        {expense.betrag !== null && (
+                          <span className="font-medium text-foreground">CHF {expense.betrag.toFixed(2)}</span>
+                        )}
+                      </div>
                     </div>
                     {expense.beleg_url && (
                       <Button
