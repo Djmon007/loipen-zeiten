@@ -17,6 +17,7 @@ interface LoipeConfig {
   name: string;
   skatingKey: string;
   klassischKey: string;
+  hasSkipiste?: boolean;
 }
 
 const LOIPEN: LoipeConfig[] = [
@@ -58,9 +59,10 @@ const LOIPEN: LoipeConfig[] = [
   },
   {
     key: 'skilift_lo',
-    name: 'Skilift Lo',
+    name: 'Skilift Loh',
     skatingKey: 'skilift_lo_skating',
     klassischKey: 'skilift_lo_klassisch',
+    hasSkipiste: true,
   },
 ];
 
@@ -84,9 +86,9 @@ export default function Loipen() {
       .select('*')
       .eq('user_id', user.id)
       .eq('datum', selectedDate)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
       console.error('Error fetching loipen:', error);
     }
 
@@ -118,6 +120,25 @@ export default function Loipen() {
     setLoipenState((prev) => ({
       ...prev,
       [key]: !prev[key],
+    }));
+  };
+
+  const toggleBoth = (loipe: LoipeConfig) => {
+    const bothSelected = loipenState[loipe.skatingKey] && loipenState[loipe.klassischKey];
+    setLoipenState((prev) => ({
+      ...prev,
+      [loipe.skatingKey]: !bothSelected,
+      [loipe.klassischKey]: !bothSelected,
+    }));
+  };
+
+  const toggleSkipiste = (loipe: LoipeConfig) => {
+    // For Skilift Loh, toggle both skating and klassisch together as "Skipiste"
+    const isSelected = loipenState[loipe.skatingKey] || loipenState[loipe.klassischKey];
+    setLoipenState((prev) => ({
+      ...prev,
+      [loipe.skatingKey]: !isSelected,
+      [loipe.klassischKey]: !isSelected,
     }));
   };
 
@@ -161,6 +182,21 @@ export default function Loipen() {
       description: 'Loipen-Protokoll wurde aktualisiert',
     });
     fetchLoipenData();
+  };
+
+  const countSelected = () => {
+    let count = 0;
+    LOIPEN.forEach((loipe) => {
+      if (loipe.hasSkipiste) {
+        if (loipenState[loipe.skatingKey] || loipenState[loipe.klassischKey]) {
+          count++;
+        }
+      } else {
+        if (loipenState[loipe.skatingKey]) count++;
+        if (loipenState[loipe.klassischKey]) count++;
+      }
+    });
+    return count;
   };
 
   const hasAnySelected = Object.values(loipenState).some((v) => v);
@@ -213,36 +249,71 @@ export default function Loipen() {
                     className="loipe-card p-4 rounded-lg border border-border bg-card"
                   >
                     <p className="font-medium mb-3">{loipe.name}</p>
-                    <div className="flex gap-6">
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id={loipe.skatingKey}
-                          checked={loipenState[loipe.skatingKey] || false}
-                          onCheckedChange={() => toggleLoipe(loipe.skatingKey)}
-                          className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                        />
-                        <Label
-                          htmlFor={loipe.skatingKey}
-                          className="text-sm cursor-pointer"
-                        >
-                          Skating
-                        </Label>
+                    {loipe.hasSkipiste ? (
+                      // Skilift Loh - only Skipiste checkbox
+                      <div className="flex gap-6">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id={`${loipe.key}_skipiste`}
+                            checked={loipenState[loipe.skatingKey] || loipenState[loipe.klassischKey] || false}
+                            onCheckedChange={() => toggleSkipiste(loipe)}
+                            className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                          />
+                          <Label
+                            htmlFor={`${loipe.key}_skipiste`}
+                            className="text-sm cursor-pointer"
+                          >
+                            Skipiste
+                          </Label>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id={loipe.klassischKey}
-                          checked={loipenState[loipe.klassischKey] || false}
-                          onCheckedChange={() => toggleLoipe(loipe.klassischKey)}
-                          className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                        />
-                        <Label
-                          htmlFor={loipe.klassischKey}
-                          className="text-sm cursor-pointer"
-                        >
-                          Klassisch
-                        </Label>
+                    ) : (
+                      // Regular loipen - Skating, Klassisch, and Beides
+                      <div className="flex gap-4 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id={loipe.skatingKey}
+                            checked={loipenState[loipe.skatingKey] || false}
+                            onCheckedChange={() => toggleLoipe(loipe.skatingKey)}
+                            className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                          />
+                          <Label
+                            htmlFor={loipe.skatingKey}
+                            className="text-sm cursor-pointer"
+                          >
+                            Skating
+                          </Label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id={loipe.klassischKey}
+                            checked={loipenState[loipe.klassischKey] || false}
+                            onCheckedChange={() => toggleLoipe(loipe.klassischKey)}
+                            className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                          />
+                          <Label
+                            htmlFor={loipe.klassischKey}
+                            className="text-sm cursor-pointer"
+                          >
+                            Klassisch
+                          </Label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id={`${loipe.key}_beides`}
+                            checked={loipenState[loipe.skatingKey] && loipenState[loipe.klassischKey]}
+                            onCheckedChange={() => toggleBoth(loipe)}
+                            className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                          />
+                          <Label
+                            htmlFor={`${loipe.key}_beides`}
+                            className="text-sm cursor-pointer"
+                          >
+                            Beides
+                          </Label>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -273,7 +344,7 @@ export default function Loipen() {
               <div className="flex items-center gap-2 text-success">
                 <Check className="h-5 w-5" />
                 <p className="font-medium">
-                  {Object.values(loipenState).filter(Boolean).length} Loipen markiert
+                  {countSelected()} Loipen markiert
                 </p>
               </div>
             </CardContent>

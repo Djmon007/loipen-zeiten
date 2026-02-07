@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Fuel, Plus } from 'lucide-react';
+import { Fuel, Plus, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -34,6 +35,13 @@ export default function Diesel() {
   const [selectedTank, setSelectedTank] = useState<DieselTank>('Tank Nidfurn');
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [liter, setLiter] = useState('');
+
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<DieselEntry | null>(null);
+  const [editLiter, setEditLiter] = useState('');
+  const [editTank, setEditTank] = useState<DieselTank>('Tank Nidfurn');
+  const [editDate, setEditDate] = useState('');
 
   const fetchEntries = useCallback(async () => {
     if (!user) return;
@@ -104,8 +112,60 @@ export default function Diesel() {
     });
   };
 
+  const openEditDialog = (entry: DieselEntry) => {
+    setEditingEntry(entry);
+    setEditLiter(entry.liter.toString());
+    setEditTank(entry.tank);
+    setEditDate(entry.datum);
+    setEditDialogOpen(true);
+  };
+
+  const saveEdit = async () => {
+    if (!editingEntry || !editLiter) return;
+
+    const literValue = parseFloat(editLiter);
+    if (isNaN(literValue) || literValue <= 0) {
+      toast({
+        title: 'Fehler',
+        description: 'Bitte gültige Literzahl eingeben',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setSaving(true);
+
+    const { error } = await supabase
+      .from('diesel_entries')
+      .update({
+        liter: literValue,
+        tank: editTank,
+        datum: editDate,
+      })
+      .eq('id', editingEntry.id);
+
+    setSaving(false);
+
+    if (error) {
+      toast({
+        title: 'Fehler',
+        description: 'Eintrag konnte nicht aktualisiert werden',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setEditDialogOpen(false);
+    setEditingEntry(null);
+    fetchEntries();
+    toast({
+      title: 'Aktualisiert',
+      description: 'Diesel-Eintrag wurde geändert',
+    });
+  };
+
   return (
-    <AppLayout title="Diesel-Tankung">
+    <AppLayout title="Dieselverbrauch">
       <div className="space-y-6">
         {/* Add Entry Card */}
         <Card>
@@ -188,8 +248,16 @@ export default function Diesel() {
                         {format(new Date(entry.datum), 'dd.MM.yyyy', { locale: de })}
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="flex items-center gap-2">
                       <p className="font-semibold text-sm">{entry.liter} L</p>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => openEditDialog(entry)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -197,6 +265,61 @@ export default function Diesel() {
             )}
           </CardContent>
         </Card>
+
+        {/* Edit Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Eintrag bearbeiten</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label>Tank</Label>
+                <Select
+                  value={editTank}
+                  onValueChange={(v) => setEditTank(v as DieselTank)}
+                >
+                  <SelectTrigger className="input-alpine">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TANKS.map((tank) => (
+                      <SelectItem key={tank} value={tank}>
+                        {tank}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Datum</Label>
+                <Input
+                  type="date"
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                  className="input-alpine"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Liter</Label>
+                <Input
+                  type="number"
+                  value={editLiter}
+                  onChange={(e) => setEditLiter(e.target.value)}
+                  className="input-alpine"
+                  min="0"
+                  step="0.1"
+                />
+              </div>
+
+              <Button onClick={saveEdit} disabled={saving || !editLiter} className="w-full">
+                {saving ? 'Speichern...' : 'Änderungen speichern'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Play, Square, Plus, Clock, Calendar } from 'lucide-react';
+import { Play, Square, Plus, Clock, Calendar, Pause, PlayCircle } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -36,6 +36,9 @@ export default function Zeiterfassung() {
   const [selectedProject, setSelectedProject] = useState<WorkType>('Loipenpräparation');
   const [weeklyHours, setWeeklyHours] = useState(0);
   const [monthlyHours, setMonthlyHours] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const pausedTimeRef = useRef(0);
+  const pauseStartRef = useRef<Date | null>(null);
 
   // Manual entry dialog state
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
@@ -108,18 +111,18 @@ export default function Zeiterfassung() {
 
   // Timer effect
   useEffect(() => {
-    if (!activeTimer || !activeTimer.start_zeit) return;
+    if (!activeTimer || !activeTimer.start_zeit || isPaused) return;
 
     const startTime = new Date(`${activeTimer.datum}T${activeTimer.start_zeit}`);
     
     const interval = setInterval(() => {
       const now = new Date();
-      const elapsed = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+      const elapsed = Math.floor((now.getTime() - startTime.getTime()) / 1000) - pausedTimeRef.current;
       setElapsedTime(elapsed);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [activeTimer]);
+  }, [activeTimer, isPaused]);
 
   const startTimer = async () => {
     if (!user) return;
@@ -150,10 +153,36 @@ export default function Zeiterfassung() {
       arbeit: data.arbeit as WorkType
     });
     setElapsedTime(0);
+    pausedTimeRef.current = 0;
+    setIsPaused(false);
     toast({
       title: 'Timer gestartet',
       description: `${selectedProject} läuft`,
     });
+  };
+
+  const pauseTimer = () => {
+    if (!isPaused) {
+      pauseStartRef.current = new Date();
+      setIsPaused(true);
+      toast({
+        title: 'Pause',
+        description: 'Timer pausiert',
+      });
+    }
+  };
+
+  const resumeTimer = () => {
+    if (isPaused && pauseStartRef.current) {
+      const pauseDuration = Math.floor((new Date().getTime() - pauseStartRef.current.getTime()) / 1000);
+      pausedTimeRef.current += pauseDuration;
+      pauseStartRef.current = null;
+      setIsPaused(false);
+      toast({
+        title: 'Weiter',
+        description: 'Timer läuft wieder',
+      });
+    }
   };
 
   const stopTimer = async () => {
@@ -161,7 +190,15 @@ export default function Zeiterfassung() {
 
     const now = new Date();
     const startTime = new Date(`${activeTimer.datum}T${activeTimer.start_zeit}`);
-    const totalHours = (now.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+    
+    // Subtract paused time from total
+    let totalSeconds = (now.getTime() - startTime.getTime()) / 1000;
+    if (isPaused && pauseStartRef.current) {
+      totalSeconds -= (now.getTime() - pauseStartRef.current.getTime()) / 1000;
+    }
+    totalSeconds -= pausedTimeRef.current;
+    
+    const totalHours = totalSeconds / 3600;
 
     const { error } = await supabase
       .from('time_entries')
@@ -182,6 +219,8 @@ export default function Zeiterfassung() {
 
     setActiveTimer(null);
     setElapsedTime(0);
+    pausedTimeRef.current = 0;
+    setIsPaused(false);
     fetchEntries();
     toast({
       title: 'Timer gestoppt',
@@ -305,9 +344,12 @@ export default function Zeiterfassung() {
             {activeTimer && (
               <div className="text-center py-4">
                 <p className="text-sm text-muted-foreground mb-1">{activeTimer.arbeit}</p>
-                <p className="text-4xl font-mono font-bold text-primary timer-pulse">
+                <p className={`text-4xl font-mono font-bold ${isPaused ? 'text-warning' : 'text-primary timer-pulse'}`}>
                   {formatDuration(elapsedTime)}
                 </p>
+                {isPaused && (
+                  <p className="text-sm text-warning mt-2">⏸ Pausiert</p>
+                )}
               </div>
             )}
 
@@ -318,10 +360,23 @@ export default function Zeiterfassung() {
                   Starten
                 </Button>
               ) : (
-                <Button onClick={stopTimer} variant="destructive" className="flex-1 gap-2">
-                  <Square className="h-4 w-4" />
-                  Stoppen
-                </Button>
+                <>
+                  <Button onClick={stopTimer} variant="destructive" className="flex-1 gap-2">
+                    <Square className="h-4 w-4" />
+                    Stoppen
+                  </Button>
+                  {!isPaused ? (
+                    <Button onClick={pauseTimer} variant="outline" className="gap-2">
+                      <Pause className="h-4 w-4" />
+                      Pause
+                    </Button>
+                  ) : (
+                    <Button onClick={resumeTimer} variant="secondary" className="gap-2">
+                      <PlayCircle className="h-4 w-4" />
+                      Weiter
+                    </Button>
+                  )}
+                </>
               )}
 
               <Dialog open={manualDialogOpen} onOpenChange={setManualDialogOpen}>

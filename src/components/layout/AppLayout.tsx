@@ -2,7 +2,8 @@ import { ReactNode } from 'react';
 import { BottomNav } from './BottomNav';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { LogOut, User } from 'lucide-react';
+import { LogOut } from 'lucide-react';
+import logo from '@/assets/logo.jpg';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -17,7 +18,12 @@ export function AppLayout({ children, title }: AppLayoutProps) {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-md border-b border-border">
         <div className="flex items-center justify-between px-4 py-3">
-          <h1 className="text-lg font-semibold text-foreground">{title}</h1>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full overflow-hidden">
+              <img src={logo} alt="Logo" className="w-full h-full object-cover" />
+            </div>
+            <h1 className="text-lg font-semibold text-foreground">{title}</h1>
+          </div>
           <div className="flex items-center gap-2">
             {profile && (
               <span className="text-sm text-muted-foreground hidden sm:block">

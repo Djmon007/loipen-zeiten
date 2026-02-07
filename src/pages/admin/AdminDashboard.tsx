@@ -3,17 +3,18 @@ import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { Clock, Users, Fuel, Receipt, MapPin, TrendingUp, ArrowRight } from 'lucide-react';
+import { Clock, Fuel, Receipt, MapPin, Banknote, ArrowRight } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
+import { getSeasonDates, getSeasonLabel } from '@/lib/seasonUtils';
 
 interface DashboardStats {
   totalHoursWeek: number;
   totalHoursMonth: number;
   totalDieselMonth: number;
   totalExpensesMonth: number;
-  activeWorkers: number;
+  totalKasseMonth: number;
   loipenToday: number;
 }
 
@@ -30,7 +31,7 @@ export default function AdminDashboard() {
     totalHoursMonth: 0,
     totalDieselMonth: 0,
     totalExpensesMonth: 0,
-    activeWorkers: 0,
+    totalKasseMonth: 0,
     loipenToday: 0,
   });
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
@@ -44,21 +45,20 @@ export default function AdminDashboard() {
     const monthEnd = format(endOfMonth(now), 'yyyy-MM-dd');
     const today = format(now, 'yyyy-MM-dd');
 
-    // Parallel fetches for all stats
     const [
-      { data: profiles },
       { data: weekTime },
       { data: monthTime },
       { data: monthDiesel },
       { data: monthExpenses },
+      { data: monthKasse },
       { data: todayLoipen },
       { data: recentTimeEntries },
     ] = await Promise.all([
-      supabase.from('profiles').select('id, user_id, vorname, nachname'),
       supabase.from('time_entries').select('total_stunden').gte('datum', weekStart).lte('datum', weekEnd),
       supabase.from('time_entries').select('total_stunden').gte('datum', monthStart).lte('datum', monthEnd),
       supabase.from('diesel_entries').select('liter').gte('datum', monthStart).lte('datum', monthEnd),
-      supabase.from('expenses').select('id').gte('datum', monthStart).lte('datum', monthEnd),
+      supabase.from('expenses').select('betrag').gte('datum', monthStart).lte('datum', monthEnd),
+      supabase.from('kasse_tageskarten').select('betrag').gte('datum', monthStart).lte('datum', monthEnd),
       supabase.from('loipen_protokoll').select('id').eq('datum', today),
       supabase.from('time_entries').select('*, profiles!inner(vorname, nachname)').order('created_at', { ascending: false }).limit(5),
     ]);
@@ -66,26 +66,18 @@ export default function AdminDashboard() {
     const totalHoursWeek = (weekTime || []).reduce((sum, e) => sum + (e.total_stunden || 0), 0);
     const totalHoursMonth = (monthTime || []).reduce((sum, e) => sum + (e.total_stunden || 0), 0);
     const totalDieselMonth = (monthDiesel || []).reduce((sum, e) => sum + Number(e.liter || 0), 0);
-
-    // Get unique workers who logged time this month
-    const { data: activeWorkersData } = await supabase
-      .from('time_entries')
-      .select('user_id')
-      .gte('datum', monthStart)
-      .lte('datum', monthEnd);
-    
-    const uniqueWorkers = new Set((activeWorkersData || []).map(e => e.user_id));
+    const totalExpensesMonth = (monthExpenses || []).reduce((sum, e) => sum + (e.betrag || 0), 0);
+    const totalKasseMonth = (monthKasse || []).reduce((sum, e) => sum + (e.betrag || 0), 0);
 
     setStats({
       totalHoursWeek,
       totalHoursMonth,
       totalDieselMonth,
-      totalExpensesMonth: (monthExpenses || []).length,
-      activeWorkers: uniqueWorkers.size,
+      totalExpensesMonth,
+      totalKasseMonth,
       loipenToday: (todayLoipen || []).length,
     });
 
-    // Build recent activity
     const activities: RecentActivity[] = (recentTimeEntries || []).slice(0, 5).map((entry: any) => ({
       type: 'time' as const,
       user: `${entry.profiles?.vorname || ''} ${entry.profiles?.nachname || ''}`.trim() || 'Unbekannt',
@@ -101,12 +93,14 @@ export default function AdminDashboard() {
     fetchStats();
   }, [fetchStats]);
 
+  const currentSeason = getSeasonLabel(new Date());
+
   const statCards = [
     { label: 'Stunden (Woche)', value: `${stats.totalHoursWeek.toFixed(1)} h`, icon: Clock, color: 'text-primary' },
-    { label: 'Stunden (Monat)', value: `${stats.totalHoursMonth.toFixed(1)} h`, icon: TrendingUp, color: 'text-primary' },
-    { label: 'Aktive Mitarbeiter', value: stats.activeWorkers.toString(), icon: Users, color: 'text-success' },
+    { label: 'Stunden (Monat)', value: `${stats.totalHoursMonth.toFixed(1)} h`, icon: Clock, color: 'text-primary' },
     { label: 'Diesel (Monat)', value: `${stats.totalDieselMonth.toFixed(0)} L`, icon: Fuel, color: 'text-warning' },
-    { label: 'Belege (Monat)', value: stats.totalExpensesMonth.toString(), icon: Receipt, color: 'text-info' },
+    { label: 'Spesen (Monat)', value: `CHF ${stats.totalExpensesMonth.toFixed(0)}`, icon: Receipt, color: 'text-info' },
+    { label: 'Kasse (Monat)', value: `CHF ${stats.totalKasseMonth.toFixed(0)}`, icon: Banknote, color: 'text-success' },
     { label: 'Loipen heute', value: stats.loipenToday.toString(), icon: MapPin, color: 'text-primary' },
   ];
 
@@ -115,11 +109,20 @@ export default function AdminDashboard() {
     { href: '/admin/loipen', label: 'Loipen-Protokolle', icon: MapPin },
     { href: '/admin/diesel', label: 'Diesel-Übersicht', icon: Fuel },
     { href: '/admin/spesen', label: 'Belege verwalten', icon: Receipt },
+    { href: '/admin/kasse', label: 'Kasse Tageskarten', icon: Banknote },
   ];
 
   return (
     <AdminLayout title="Dashboard">
       <div className="space-y-6">
+        {/* Current Season */}
+        <Card className="bg-primary/5 border-primary/20">
+          <CardContent className="pt-4">
+            <p className="text-sm text-muted-foreground">Aktuelle Saison</p>
+            <p className="text-xl font-semibold text-primary">{currentSeason}</p>
+          </CardContent>
+        </Card>
+
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           {statCards.map((stat) => (
