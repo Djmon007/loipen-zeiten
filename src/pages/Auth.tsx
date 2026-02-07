@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Snowflake, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { z } from 'zod';
+import logo from '@/assets/logo.jpg';
 
 const loginSchema = z.object({
   email: z.string().email('Ungültige E-Mail-Adresse'),
@@ -133,8 +134,12 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-            <Snowflake className="h-8 w-8 text-primary" />
+          <div className="mx-auto w-24 h-24 rounded-full overflow-hidden border-2 border-primary/20">
+            <img 
+              src={logo} 
+              alt="Loipen Logo" 
+              className="w-full h-full object-cover"
+            />
           </div>
           <div>
             <CardTitle className="text-2xl">Loipen Arbeitszeit</CardTitle>

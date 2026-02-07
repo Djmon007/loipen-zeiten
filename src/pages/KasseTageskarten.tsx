@@ -9,23 +9,23 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Receipt, Upload, Camera, FileText, Loader2, Pencil } from 'lucide-react';
+import { Banknote, Upload, Camera, FileText, Loader2, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 
-interface Expense {
+interface KasseEntry {
   id: string;
   datum: string;
-  betrag: number | null;
+  betrag: number;
   beschreibung: string | null;
   beleg_url: string | null;
   beleg_filename: string | null;
 }
 
-export default function Spesen() {
+export default function KasseTageskarten() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [entries, setEntries] = useState<KasseEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -39,38 +39,40 @@ export default function Spesen() {
 
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [editingEntry, setEditingEntry] = useState<KasseEntry | null>(null);
   const [editBetrag, setEditBetrag] = useState('');
   const [editBeschreibung, setEditBeschreibung] = useState('');
   const [editDate, setEditDate] = useState('');
 
-  const fetchExpenses = useCallback(async () => {
+  // Calculate total
+  const total = entries.reduce((sum, e) => sum + e.betrag, 0);
+
+  const fetchEntries = useCallback(async () => {
     if (!user) return;
 
     const { data, error } = await supabase
-      .from('expenses')
+      .from('kasse_tageskarten')
       .select('*')
       .eq('user_id', user.id)
       .order('datum', { ascending: false })
       .limit(10);
 
     if (error) {
-      console.error('Error fetching expenses:', error);
+      console.error('Error fetching kasse entries:', error);
       return;
     }
 
-    setExpenses(data || []);
+    setEntries(data || []);
     setLoading(false);
   }, [user]);
 
   useEffect(() => {
-    fetchExpenses();
-  }, [fetchExpenses]);
+    fetchEntries();
+  }, [fetchEntries]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
       const validTypes = ['image/jpeg', 'image/png', 'image/heic', 'application/pdf'];
       if (!validTypes.includes(file.type)) {
         toast({
@@ -81,7 +83,6 @@ export default function Spesen() {
         return;
       }
 
-      // Validate file size (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
         toast({
           title: 'Datei zu gross',
@@ -95,35 +96,56 @@ export default function Spesen() {
     }
   };
 
-  const uploadExpense = async () => {
-    if (!user || !selectedFile) return;
+  const saveEntry = async () => {
+    if (!user || !betrag) {
+      toast({
+        title: 'Fehler',
+        description: 'Bitte Betrag eingeben',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const betragValue = parseFloat(betrag);
+    if (isNaN(betragValue) || betragValue <= 0) {
+      toast({
+        title: 'Fehler',
+        description: 'Bitte gültigen Betrag eingeben',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setUploading(true);
 
     try {
-      // Upload file to storage
-      const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      let belegUrl = null;
+      let belegFilename = null;
 
-      const { error: uploadError } = await supabase.storage
-        .from('belege')
-        .upload(fileName, selectedFile);
+      if (selectedFile) {
+        const fileExt = selectedFile.name.split('.').pop();
+        const fileName = `kasse/${user.id}/${Date.now()}.${fileExt}`;
 
-      if (uploadError) {
-        throw uploadError;
+        const { error: uploadError } = await supabase.storage
+          .from('belege')
+          .upload(fileName, selectedFile);
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        const { data: urlData } = supabase.storage.from('belege').getPublicUrl(fileName);
+        belegUrl = urlData.publicUrl;
+        belegFilename = selectedFile.name;
       }
 
-      // Get public URL
-      const { data: urlData } = supabase.storage.from('belege').getPublicUrl(fileName);
-
-      // Save expense record
-      const { error: dbError } = await supabase.from('expenses').insert({
+      const { error: dbError } = await supabase.from('kasse_tageskarten').insert({
         user_id: user.id,
         datum: selectedDate,
-        betrag: betrag ? parseFloat(betrag) : null,
+        betrag: betragValue,
         beschreibung: beschreibung || null,
-        beleg_url: urlData.publicUrl,
-        beleg_filename: selectedFile.name,
+        beleg_url: belegUrl,
+        beleg_filename: belegFilename,
       });
 
       if (dbError) {
@@ -137,16 +159,16 @@ export default function Spesen() {
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (cameraInputRef.current) cameraInputRef.current.value = '';
 
-      fetchExpenses();
+      fetchEntries();
       toast({
-        title: 'Beleg hochgeladen',
-        description: 'Spesen wurden erfasst',
+        title: 'Gespeichert',
+        description: 'Tageskarten-Einnahme erfasst',
       });
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('Save error:', error);
       toast({
         title: 'Fehler',
-        description: 'Beleg konnte nicht hochgeladen werden',
+        description: 'Eintrag konnte nicht gespeichert werden',
         variant: 'destructive',
       });
     } finally {
@@ -154,27 +176,37 @@ export default function Spesen() {
     }
   };
 
-  const openEditDialog = (expense: Expense) => {
-    setEditingExpense(expense);
-    setEditBetrag(expense.betrag?.toString() || '');
-    setEditBeschreibung(expense.beschreibung || '');
-    setEditDate(expense.datum);
+  const openEditDialog = (entry: KasseEntry) => {
+    setEditingEntry(entry);
+    setEditBetrag(entry.betrag.toString());
+    setEditBeschreibung(entry.beschreibung || '');
+    setEditDate(entry.datum);
     setEditDialogOpen(true);
   };
 
   const saveEdit = async () => {
-    if (!editingExpense) return;
+    if (!editingEntry || !editBetrag) return;
+
+    const betragValue = parseFloat(editBetrag);
+    if (isNaN(betragValue) || betragValue <= 0) {
+      toast({
+        title: 'Fehler',
+        description: 'Bitte gültigen Betrag eingeben',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setUploading(true);
 
     const { error } = await supabase
-      .from('expenses')
+      .from('kasse_tageskarten')
       .update({
-        betrag: editBetrag ? parseFloat(editBetrag) : null,
+        betrag: betragValue,
         beschreibung: editBeschreibung || null,
         datum: editDate,
       })
-      .eq('id', editingExpense.id);
+      .eq('id', editingEntry.id);
 
     setUploading(false);
 
@@ -188,23 +220,40 @@ export default function Spesen() {
     }
 
     setEditDialogOpen(false);
-    setEditingExpense(null);
-    fetchExpenses();
+    setEditingEntry(null);
+    fetchEntries();
     toast({
       title: 'Aktualisiert',
-      description: 'Spesen-Eintrag wurde geändert',
+      description: 'Eintrag wurde geändert',
     });
   };
 
   return (
-    <AppLayout title="Spesen">
+    <AppLayout title="Kasse Tageskarten">
       <div className="space-y-6">
-        {/* Upload Card */}
+        {/* Total Card */}
+        <Card className="bg-primary/5 border-primary/20">
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Banknote className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Letzte Einnahmen</p>
+                  <p className="text-xl font-semibold">Total: CHF {total.toFixed(2)}</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Entry Card */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <Receipt className="h-4 w-4 text-primary" />
-              Beleg erfassen
+              <Banknote className="h-4 w-4 text-primary" />
+              Betrag erfassen
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -234,7 +283,7 @@ export default function Spesen() {
             <div className="space-y-2">
               <Label>Beschreibung (optional)</Label>
               <Textarea
-                placeholder="z.B. Material, Restaurant..."
+                placeholder="z.B. Tageskarten, Abonnements..."
                 value={beschreibung}
                 onChange={(e) => setBeschreibung(e.target.value)}
                 className="input-alpine resize-none"
@@ -243,7 +292,7 @@ export default function Spesen() {
             </div>
 
             <div className="space-y-2">
-              <Label>Beleg</Label>
+              <Label>Beleg (optional)</Label>
               <div className="flex gap-3">
                 <Button
                   type="button"
@@ -300,62 +349,57 @@ export default function Spesen() {
             )}
 
             <Button
-              onClick={uploadExpense}
-              disabled={uploading || !selectedFile}
+              onClick={saveEntry}
+              disabled={uploading || !betrag}
               className="w-full gap-2"
             >
               {uploading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Hochladen...
+                  Speichern...
                 </>
               ) : (
-                <>
-                  <Upload className="h-4 w-4" />
-                  Beleg speichern
-                </>
+                'Beleg speichern'
               )}
             </Button>
           </CardContent>
         </Card>
 
-        {/* Recent Expenses */}
+        {/* Recent Entries */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Letzte Belege</CardTitle>
+            <CardTitle className="text-base">Letzte Einnahmen</CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
               <p className="text-muted-foreground text-sm">Laden...</p>
-            ) : expenses.length === 0 ? (
-              <p className="text-muted-foreground text-sm">Keine Belege vorhanden</p>
+            ) : entries.length === 0 ? (
+              <p className="text-muted-foreground text-sm">Keine Einträge vorhanden</p>
             ) : (
               <div className="space-y-3">
-                {expenses.map((expense) => (
+                {entries.map((entry) => (
                   <div
-                    key={expense.id}
+                    key={entry.id}
                     className="flex items-center justify-between py-2 border-b border-border last:border-0"
                   >
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">
-                        {expense.beschreibung || expense.beleg_filename || 'Beleg'}
+                        {entry.beschreibung || 'Tageskarten'}
                       </p>
                       <div className="flex gap-2 text-xs text-muted-foreground">
-                        <span>{format(new Date(expense.datum), 'dd.MM.yyyy', { locale: de })}</span>
-                        {expense.betrag !== null && (
-                          <span className="font-medium text-foreground">CHF {expense.betrag.toFixed(2)}</span>
-                        )}
+                        <span>{format(new Date(entry.datum), 'dd.MM.yyyy', { locale: de })}</span>
+                        <span className="font-medium text-foreground">CHF {entry.betrag.toFixed(2)}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
-                      {expense.beleg_url && (
+                      {entry.beleg_url && (
                         <Button
                           variant="ghost"
                           size="sm"
                           asChild
                         >
                           <a
-                            href={expense.beleg_url}
+                            href={entry.beleg_url}
                             target="_blank"
                             rel="noopener noreferrer"
                           >
@@ -367,7 +411,7 @@ export default function Spesen() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => openEditDialog(expense)}
+                        onClick={() => openEditDialog(entry)}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -418,7 +462,7 @@ export default function Spesen() {
                 />
               </div>
 
-              <Button onClick={saveEdit} disabled={uploading} className="w-full">
+              <Button onClick={saveEdit} disabled={uploading || !editBetrag} className="w-full">
                 {uploading ? 'Speichern...' : 'Änderungen speichern'}
               </Button>
             </div>

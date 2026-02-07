@@ -11,6 +11,7 @@ import Zeiterfassung from "./pages/Zeiterfassung";
 import Loipen from "./pages/Loipen";
 import Diesel from "./pages/Diesel";
 import Spesen from "./pages/Spesen";
+import KasseTageskarten from "./pages/KasseTageskarten";
 import NotFound from "./pages/NotFound";
 
 // Admin Pages
@@ -20,6 +21,9 @@ import AdminLoipen from "./pages/admin/AdminLoipen";
 import AdminDiesel from "./pages/admin/AdminDiesel";
 import AdminSpesen from "./pages/admin/AdminSpesen";
 import AdminMitarbeiter from "./pages/admin/AdminMitarbeiter";
+import AdminKasse from "./pages/admin/AdminKasse";
+import AdminAufgaben from "./pages/admin/AdminAufgaben";
+import AdminLoipenConfig from "./pages/admin/AdminLoipenConfig";
 
 const queryClient = new QueryClient();
 
@@ -133,6 +137,14 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/kasse"
+        element={
+          <ProtectedRoute>
+            <KasseTageskarten />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Admin Panel routes */}
       <Route
@@ -180,6 +192,30 @@ function AppRoutes() {
         element={
           <AdminRoute>
             <AdminMitarbeiter />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/kasse"
+        element={
+          <AdminRoute>
+            <AdminKasse />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/aufgaben"
+        element={
+          <AdminRoute>
+            <AdminAufgaben />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/loipen-config"
+        element={
+          <AdminRoute>
+            <AdminLoipenConfig />
           </AdminRoute>
         }
       />

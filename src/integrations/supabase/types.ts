@@ -85,6 +85,72 @@ export type Database = {
           },
         ]
       }
+      kasse_tageskarten: {
+        Row: {
+          beleg_filename: string | null
+          beleg_url: string | null
+          beschreibung: string | null
+          betrag: number
+          created_at: string
+          datum: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          beleg_filename?: string | null
+          beleg_url?: string | null
+          beschreibung?: string | null
+          betrag: number
+          created_at?: string
+          datum?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          beleg_filename?: string | null
+          beleg_url?: string | null
+          beschreibung?: string | null
+          betrag?: number
+          created_at?: string
+          datum?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      loipen_config: {
+        Row: {
+          created_at: string
+          has_klassisch: boolean
+          has_skating: boolean
+          has_skipiste: boolean
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          has_klassisch?: boolean
+          has_skating?: boolean
+          has_skipiste?: boolean
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          has_klassisch?: boolean
+          has_skating?: boolean
+          has_skipiste?: boolean
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       loipen_protokoll: {
         Row: {
           created_at: string
@@ -183,6 +249,27 @@ export type Database = {
           updated_at?: string
           user_id?: string
           vorname?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }

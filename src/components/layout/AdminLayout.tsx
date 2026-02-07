@@ -16,7 +16,11 @@ import {
   Users,
   ChevronRight,
   ArrowLeft,
+  Banknote,
+  ListTodo,
+  Settings,
 } from 'lucide-react';
+import logo from '@/assets/logo.jpg';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -29,7 +33,10 @@ const navItems = [
   { href: '/admin/loipen', icon: MapPin, label: 'Loipen-Protokoll' },
   { href: '/admin/diesel', icon: Fuel, label: 'Diesel' },
   { href: '/admin/spesen', icon: Receipt, label: 'Spesen' },
+  { href: '/admin/kasse', icon: Banknote, label: 'Kasse Tageskarten' },
   { href: '/admin/mitarbeiter', icon: Users, label: 'Mitarbeiter' },
+  { href: '/admin/aufgaben', icon: ListTodo, label: 'Aufgaben' },
+  { href: '/admin/loipen-config', icon: Settings, label: 'Loipen-Konfiguration' },
 ];
 
 function NavContent({ onNavigate }: { onNavigate?: () => void }) {
@@ -40,8 +47,15 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="p-6 border-b border-border">
-        <h1 className="text-xl font-bold text-primary">Loipe Admin</h1>
-        <p className="text-sm text-muted-foreground mt-1">Verwaltungspanel</p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full overflow-hidden">
+            <img src={logo} alt="Logo" className="w-full h-full object-cover" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-primary">Loipe Admin</h1>
+            <p className="text-xs text-muted-foreground">Verwaltungspanel</p>
+          </div>
+        </div>
       </div>
 
       {/* Navigation */}

@@ -1,4 +1,4 @@
-import { Clock, MapPin, Fuel, Receipt, LayoutDashboard } from 'lucide-react';
+import { Clock, MapPin, Fuel, Receipt, LayoutDashboard, Banknote } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -8,6 +8,7 @@ const workerNavItems = [
   { to: '/loipen', icon: MapPin, label: 'Loipen' },
   { to: '/diesel', icon: Fuel, label: 'Diesel' },
   { to: '/spesen', icon: Receipt, label: 'Spesen' },
+  { to: '/kasse', icon: Banknote, label: 'Kasse' },
 ];
 
 const adminNavItems = [
@@ -27,13 +28,13 @@ export function BottomNav() {
             key={item.to}
             to={item.to}
             className={cn(
-              "flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors",
+              "flex flex-col items-center gap-1 px-2 py-2 rounded-lg transition-colors",
               "text-muted-foreground hover:text-primary"
             )}
             activeClassName="text-primary bg-primary/10"
           >
             <item.icon className="h-5 w-5" />
-            <span className="text-xs font-medium">{item.label}</span>
+            <span className="text-[10px] font-medium">{item.label}</span>
           </NavLink>
         ))}
       </div>
